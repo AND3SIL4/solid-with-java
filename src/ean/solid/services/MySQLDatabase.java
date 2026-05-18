@@ -1,7 +1,9 @@
-package ean.solid;
+package ean.solid.services;
 
-// ❌ Viola DIP: Clases concretas en lugar de abstracciones
-public class MySQLDatabase {
+import ean.solid.interfaces.OrderStorage;
+
+public class MySQLDatabase implements OrderStorage {
+    @Override
     public void saveOrder(String orderDetails) {
         System.out.println("Guardando en base de datos MySQL: " + orderDetails);
     }

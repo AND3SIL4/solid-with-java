@@ -1,4 +1,4 @@
-package ean.solid;
+package ean.solid.entities;
 
 public class Product {
     private String name;
@@ -17,8 +17,4 @@ public class Product {
         return price;
     }
 
-    // Calcular el costo de envío basado en peso.
-    public double getShippingWeight() {
-        return 5.0; // Peso por defecto en kg
-    }
 }
