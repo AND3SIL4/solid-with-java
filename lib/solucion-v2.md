@@ -1,5 +1,9 @@
 # Solución Alcanzada — Refactorización SOLID
 
+![initial-starting-exercise-execution](./images/initial-starting-exercise.png)
+
+![final-result-exercise](./images/final-result-exercise.png)
+
 ## Resumen del proceso
 
 Refactorización guiada paso a paso del proyecto original en `src/ean/solid/`, corrigiendo las 5 violaciones SOLID mediante mentoría interactiva.
@@ -13,6 +17,7 @@ Refactorización guiada paso a paso del proyecto original en `src/ean/solid/`, c
 **Problema:** `OrderProcessor.processOrder()` calculaba precios, guardaba en BD y enviaba emails.
 
 **Solución:**
+
 - Se eliminó la dependencia directa de `MySQLDatabase` y `EmailService` de `OrderProcessor`.
 - `OrderProcessor` ahora solo calcula precio, descuento y envío, retornando el total (`double`).
 - Se creó `OrderService` en `ean.solid.services` como clase orquestadora: llama a `OrderProcessor`, luego a `MySQLDatabase` para persistir y a `EmailService` para notificar.
@@ -24,6 +29,7 @@ Refactorización guiada paso a paso del proyecto original en `src/ean/solid/`, c
 **Problema:** Cadena de `if-else` por tipo de cliente en `OrderProcessor`. Agregar un nuevo tipo requería modificar la clase.
 
 **Solución:**
+
 - Se creó la interfaz `CalculateDiscount` con método `calculateDiscount(double price)`.
 - Se crearon las implementaciones:
   - `DiscountNormal` → descuento 0%
@@ -39,6 +45,7 @@ Refactorización guiada paso a paso del proyecto original en `src/ean/solid/`, c
 **Problema:** `DigitalProduct` sobrescribía `getShippingWeight()` lanzando `UnsupportedOperationException`, rompiendo el contrato de su clase padre.
 
 **Solución:**
+
 - Se eliminó `getShippingWeight()` de la clase base `Product`.
 - Se creó la interfaz `Shippeable` con el método `getShippingWeight()`.
 - `PhysicalProduct` extiende `Product` e implementa `Shippeable`.
@@ -52,6 +59,7 @@ Refactorización guiada paso a paso del proyecto original en `src/ean/solid/`, c
 **Problema:** `IWorker` obligaba a `OrderProcessor` a implementar `deliverProduct()` que no le correspondía.
 
 **Solución:**
+
 - Se eliminó `IWorker`.
 - Se crearon dos interfaces separadas:
   - `ProcessOrder` — solo con `processOrder()`.
@@ -66,6 +74,7 @@ Refactorización guiada paso a paso del proyecto original en `src/ean/solid/`, c
 **Problema:** `OrderService` (y antes `OrderProcessor`) creaba sus dependencias con `new` directamente.
 
 **Solución:**
+
 - Se crearon las interfaces:
   - `Notification` — abstracción para notificaciones.
   - `OrderStorage` — abstracción para persistencia de órdenes.
@@ -83,32 +92,32 @@ Refactorización guiada paso a paso del proyecto original en `src/ean/solid/`, c
 
 ## Verificación de principios SOLID
 
-| Principio | Violación original | Solución aplicada | Estado |
-|-----------|--------------------|--------------------|--------|
-| **SRP** | `OrderProcessor` gestionaba persistencia y notificaciones | Delegación a `OrderService`, `MySQLDatabase`, `EmailService` | ✅ |
-| **OCP** | Descuentos con cadena `if-else`; agregar cliente = modificar código | Strategy pattern con `CalculateDiscount`; agregar cliente = nueva clase | ✅ |
-| **LSP** | `DigitalProduct.getShippingWeight()` lanzaba excepción | Interfaz `Shippeable` opcional; `DigitalProduct` no incumple ningún contrato | ✅ |
-| **ISP** | `IWorker` con métodos que no todas las clases necesitan | `ProcessOrder` y `DeliverProduct` como interfaces separadas | ✅ |
-| **DIP** | `OrderService` instanciaba dependencias con `new` | Inyección por constructor; dependencias son interfaces, no clases concretas | ✅ |
+| Principio | Violación original                                                  | Solución aplicada                                                            | Estado |
+| --------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------ |
+| **SRP**   | `OrderProcessor` gestionaba persistencia y notificaciones           | Delegación a `OrderService`, `MySQLDatabase`, `EmailService`                 | ✅     |
+| **OCP**   | Descuentos con cadena `if-else`; agregar cliente = modificar código | Strategy pattern con `CalculateDiscount`; agregar cliente = nueva clase      | ✅     |
+| **LSP**   | `DigitalProduct.getShippingWeight()` lanzaba excepción              | Interfaz `Shippeable` opcional; `DigitalProduct` no incumple ningún contrato | ✅     |
+| **ISP**   | `IWorker` con métodos que no todas las clases necesitan             | `ProcessOrder` y `DeliverProduct` como interfaces separadas                  | ✅     |
+| **DIP**   | `OrderService` instanciaba dependencias con `new`                   | Inyección por constructor; dependencias son interfaces, no clases concretas  | ✅     |
 
 ---
 
 ## Cuadro comparativo: Solución de referencia vs. Solución alcanzada
 
-| Aspecto | Solución de referencia (`solucion.md`) | Solución alcanzada |
-|---------|----------------------------------------|-------------------|
-| **Paquetes** | `model/`, `discount/`, `service/`, `repository/`, `notification/` | `entities/`, `entities/discounts/`, `interfaces/`, `services/` |
-| **Ordenador** | `OrderProcessor` (en `service/`) recibe todas las dependencias vía constructor | `OrderService` (en `services/`) orquesta; `OrderProcessor` queda liviano sin dependencias |
-| **Descuentos (OCP)** | `DiscountPolicy` con método `supports(String)` + lista de políticas iterada | `CalculateDiscount` con método directo `calculateDiscount(price)`, se pasa el objeto polimórfico directo |
-| **Envío (LSP)** | `ShippingCostPolicy.calculateShippingCost(Product)` en clase separada | `instanceof Shippeable` inline en `OrderProcessor` |
-| **ISP** | `OrderProcessingWorker`, `DeliveryWorker` | `ProcessOrder`, `DeliverProduct` |
-| **Persistencia** | `OrderRepository` (interfaz), `MySQLDatabase` la implementa | `OrderStorage` (interfaz), `MySQLDatabase` la implementa |
-| **Notificación** | `NotificationService` (interfaz), `EmailService` la implementa | `Notification` (interfaz), `EmailService` la implementa |
-| **Delivery** | `ProductDeliveryService` implementa `DeliveryWorker` | `DeliverProduct` no tiene implementación |
-| **Shipping policy** | `ShippingCostPolicy` interfaz + `StandardShippingCostService` | No existe clase separada de shipping |
-| **Main** | Inyecta `OrderProcessor` con lista de `DiscountPolicy` + `OrderRepository` + `NotificationService` + `ShippingCostPolicy` | Inyecta `OrderService` con `OrderProcessor` + `Notification` + `OrderStorage` |
-| **Nombres de descuentos** | `DiscountPolicy`, `NormalDiscountPolicy`, `VipDiscountPolicy`, `EmployeeDiscountPolicy` | `CalculateDiscount`, `DiscountNormal`, `DiscountVIP`, `DiscountWorker` |
-| **ShippingWeight** | `Shippable` (una 'p') | `Shippeable` (dos 'e') |
+| Aspecto                   | Solución de referencia (`solucion.md`)                                                                                    | Solución alcanzada                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Paquetes**              | `model/`, `discount/`, `service/`, `repository/`, `notification/`                                                         | `entities/`, `entities/discounts/`, `interfaces/`, `services/`                                           |
+| **Ordenador**             | `OrderProcessor` (en `service/`) recibe todas las dependencias vía constructor                                            | `OrderService` (en `services/`) orquesta; `OrderProcessor` queda liviano sin dependencias                |
+| **Descuentos (OCP)**      | `DiscountPolicy` con método `supports(String)` + lista de políticas iterada                                               | `CalculateDiscount` con método directo `calculateDiscount(price)`, se pasa el objeto polimórfico directo |
+| **Envío (LSP)**           | `ShippingCostPolicy.calculateShippingCost(Product)` en clase separada                                                     | `instanceof Shippeable` inline en `OrderProcessor`                                                       |
+| **ISP**                   | `OrderProcessingWorker`, `DeliveryWorker`                                                                                 | `ProcessOrder`, `DeliverProduct`                                                                         |
+| **Persistencia**          | `OrderRepository` (interfaz), `MySQLDatabase` la implementa                                                               | `OrderStorage` (interfaz), `MySQLDatabase` la implementa                                                 |
+| **Notificación**          | `NotificationService` (interfaz), `EmailService` la implementa                                                            | `Notification` (interfaz), `EmailService` la implementa                                                  |
+| **Delivery**              | `ProductDeliveryService` implementa `DeliveryWorker`                                                                      | `DeliverProduct` no tiene implementación                                                                 |
+| **Shipping policy**       | `ShippingCostPolicy` interfaz + `StandardShippingCostService`                                                             | No existe clase separada de shipping                                                                     |
+| **Main**                  | Inyecta `OrderProcessor` con lista de `DiscountPolicy` + `OrderRepository` + `NotificationService` + `ShippingCostPolicy` | Inyecta `OrderService` con `OrderProcessor` + `Notification` + `OrderStorage`                            |
+| **Nombres de descuentos** | `DiscountPolicy`, `NormalDiscountPolicy`, `VipDiscountPolicy`, `EmployeeDiscountPolicy`                                   | `CalculateDiscount`, `DiscountNormal`, `DiscountVIP`, `DiscountWorker`                                   |
+| **ShippingWeight**        | `Shippable` (una 'p')                                                                                                     | `Shippeable` (dos 'e')                                                                                   |
 
 ### Similitud general: **88%**
 
